@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:system-ui;
+background:#f1f5f9;
+}
+
+.sidebar{
+position:fixed;
+width:220px;
+height:100%;
+background:#0f172a;
+color:white;
+padding:20px;
+}
+
+.sidebar h2{
+color:#38bdf8;
+}
+
+.sidebar button{
+width:100%;
+padding:10px;
+margin-top:10px;
+border:none;
+border-radius:8px;
+background:#ef4444;
+color:white;
+cursor:pointer;
+}
+
+.main{
+margin-left:240px;
+padding:20px;
+}
+
+.card{
+background:white;
+padding:15px;
+border-radius:10px;
+margin-bottom:15px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
+input{
+padding:10px;
+margin:5px;
+border:1px solid #ddd;
+border-radius:8px;
+}
+
+.addbtn{
+background:#3b82f6;
+color:white;
+border:none;
+padding:10px;
+border-radius:8px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th,td{
+padding:10px;
+border-bottom:1px solid #ddd;
+}
+
+.call{
+background:green;
+color:white;
+border:none;
+padding:6px;
+border-radius:6px;
+}
+
+.whatsapp{
+background:#22c55e;
+color:white;
+border:none;
+padding:6px;
+border-radius:6px;
+}
+
+.delete{
+background:red;
+color:white;
+border:none;
+padding:6px;
+border-radius:6px;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="sidebar">
+
+<h2>CRM</h2>
+
+<p>Total Leads: <span id="total">0</span></p>
+
+<button onclick="logout()">Logout</button>
+
+</div>
+
+
+<div class="main">
+
+<div class="card">
+
+<h3>Add Lead</h3>
+
+<input id="name" placeholder="Name">
+<input id="phone" placeholder="Phone">
+<input id="status" placeholder="Status">
+
+<button class="addbtn" onclick="addLead()">Add Lead</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Leads List</h3>
+
+<table>
+
+<thead>
+
+<tr>
+<th>Name</th>
+<th>Phone</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+
+</thead>
+
+<tbody id="list"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<script>
+
+const supabaseClient = supabase.createClient(
+"https://yqvnpuzketsjfbjqfnfb.supabase.co",
+"sb_publishable_tK8B2cY6JN-uiHxWM87Tmw_B8XQJlAs"
+);
+
+
+async function logout(){
+
+await supabaseClient.auth.signOut();
+
+window.location.href="/";
+
+}
+
+
+async function addLead(){
+
+await supabaseClient
+.from("leads")
+.insert([{
+
+name:name.value,
+phone:phone.value,
+status:status.value
+
+}]);
+
+loadLeads();
+
+}
+
+
+async function deleteLead(id){
+
+await supabaseClient
+.from("leads")
+.delete()
+.eq("id",id);
+
+loadLeads();
+
+}
+
+
+async function loadLeads(){
+
+const {data} = await supabaseClient
+.from("leads")
+.select("*")
+.order("id",{ascending:false});
+
+total.innerText=data.length;
+
+let html="";
+
+data.forEach(l=>{
+
+html+=`
+
+<tr>
+
+<td>${l.name}</td>
+
+<td>${l.phone}</td>
+
+<td>${l.status || ""}</td>
+
+<td>
+
+<a href="tel:${l.phone}">
+<button class="call">Call</button>
+</a>
+
+<a href="https://wa.me/91${l.phone}" target="_blank">
+<button class="whatsapp">WhatsApp</button>
+</a>
+
+<button class="delete" onclick="deleteLead(${l.id})">
+Delete
+</button>
+
+</td>
+
+</tr>
+
+`;
+
+});
+
+list.innerHTML=html;
+
+}
+
+loadLeads();
+
+</script>
+
+</body>
+</html>
