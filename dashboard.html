@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM Dashboard</title>
+<title>Lead CRM</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -34,7 +34,6 @@ border:none;
 border-radius:8px;
 background:#ef4444;
 color:white;
-cursor:pointer;
 }
 
 .main{
@@ -42,11 +41,26 @@ margin-left:240px;
 padding:20px;
 }
 
+.cards{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.stat{
+background:white;
+padding:15px;
+border-radius:10px;
+flex:1;
+min-width:120px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
 .card{
 background:white;
 padding:15px;
 border-radius:10px;
-margin-bottom:15px;
+margin-top:15px;
 box-shadow:0 5px 15px rgba(0,0,0,0.1);
 }
 
@@ -57,12 +71,31 @@ border:1px solid #ddd;
 border-radius:8px;
 }
 
-.addbtn{
+button{
+padding:8px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+.add{
 background:#3b82f6;
 color:white;
-border:none;
-padding:10px;
-border-radius:8px;
+}
+
+.call{
+background:green;
+color:white;
+}
+
+.whatsapp{
+background:#22c55e;
+color:white;
+}
+
+.delete{
+background:red;
+color:white;
 }
 
 table{
@@ -75,30 +108,6 @@ padding:10px;
 border-bottom:1px solid #ddd;
 }
 
-.call{
-background:green;
-color:white;
-border:none;
-padding:6px;
-border-radius:6px;
-}
-
-.whatsapp{
-background:#22c55e;
-color:white;
-border:none;
-padding:6px;
-border-radius:6px;
-}
-
-.delete{
-background:red;
-color:white;
-border:none;
-padding:6px;
-border-radius:6px;
-}
-
 </style>
 
 </head>
@@ -106,9 +115,7 @@ border-radius:6px;
 
 <div class="sidebar">
 
-<h2>CRM</h2>
-
-<p>Total Leads: <span id="total">0</span></p>
+<h2>Lead CRM</h2>
 
 <button onclick="logout()">Logout</button>
 
@@ -117,34 +124,45 @@ border-radius:6px;
 
 <div class="main">
 
-<div class="card">
+<div class="cards">
 
-<h3>Add Lead</h3>
+<div class="stat">
+Total Leads<br>
+<b id="total">0</b>
+</div>
 
-<input id="name" placeholder="Name">
-<input id="phone" placeholder="Phone">
-<input id="status" placeholder="Status">
-
-<button class="addbtn" onclick="addLead()">Add Lead</button>
+<div class="stat">
+Today Leads<br>
+<b id="today">0</b>
+</div>
 
 </div>
 
 
 <div class="card">
 
-<h3>Leads List</h3>
+<input id="search" placeholder="Search..." onkeyup="loadLeads()">
+
+<input id="name" placeholder="Name">
+<input id="phone" placeholder="Phone">
+<input id="status" placeholder="Status">
+
+<button class="add" onclick="addLead()">Add Lead</button>
+
+</div>
+
+
+<div class="card">
 
 <table>
 
 <thead>
-
 <tr>
 <th>Name</th>
 <th>Phone</th>
 <th>Status</th>
 <th>Action</th>
 </tr>
-
 </thead>
 
 <tbody id="list"></tbody>
@@ -167,7 +185,6 @@ const supabaseClient = supabase.createClient(
 async function logout(){
 
 await supabaseClient.auth.signOut();
-
 window.location.href="/";
 
 }
@@ -204,16 +221,36 @@ loadLeads();
 
 async function loadLeads(){
 
-const {data} = await supabaseClient
+const search=searchInput.value?.toLowerCase() || "";
+
+const {data}=await supabaseClient
 .from("leads")
 .select("*")
 .order("id",{ascending:false});
 
+let filtered=data.filter(l=>
+l.name?.toLowerCase().includes(search) ||
+l.phone?.includes(search)
+);
+
 total.innerText=data.length;
+
+let todayCount=0;
+let today=new Date().toISOString().slice(0,10);
+
+filtered.forEach(l=>{
+if(l.created_at?.slice(0,10)==today){
+todayCount++;
+}
+});
+
+today.innerText=todayCount;
 
 let html="";
 
-data.forEach(l=>{
+filtered.forEach(l=>{
+
+let msg="Hello "+l.name+", I am contacting you regarding our opportunity.";
 
 html+=`
 
@@ -223,7 +260,7 @@ html+=`
 
 <td>${l.phone}</td>
 
-<td>${l.status || ""}</td>
+<td>${l.status||""}</td>
 
 <td>
 
@@ -231,7 +268,7 @@ html+=`
 <button class="call">Call</button>
 </a>
 
-<a href="https://wa.me/91${l.phone}" target="_blank">
+<a href="https://wa.me/91${l.phone}?text=${encodeURIComponent(msg)}" target="_blank">
 <button class="whatsapp">WhatsApp</button>
 </a>
 
@@ -250,6 +287,8 @@ Delete
 list.innerHTML=html;
 
 }
+
+const searchInput=document.getElementById("search");
 
 loadLeads();
 
